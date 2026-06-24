@@ -1,0 +1,49 @@
+name: Auto-update World Cup scores
+
+on:
+  # Run every 3 hours during the tournament (June 11 – July 19)
+  schedule:
+    - cron: '0 */3 * * *'
+  # Also allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    # Only run during the tournament window (saves Action minutes after July 19)
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'schedule' &&
+        contains(fromJSON('["06","07"]'), format('{0}', github.event.schedule))
+      )
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Need write access to commit updated data.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Fetch latest scores and update data.json
+        run: python update_data.py
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          # Only commit if data.json actually changed
+          if git diff --staged --quiet; then
+            echo "No changes to data.json — skipping commit"
+          else
+            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")
+            git commit -m "chore: auto-update scores [$TIMESTAMP]"
+            git push
+          fi
