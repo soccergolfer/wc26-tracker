@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WC 2026 Performance Tracker & Predictor</title>
+<style>
+:root{
+  --bg:#f8f9fb;--bg2:#ffffff;--bg3:#f1f3f7;--bg4:#e8eaef;
+  --border:#dde1ec;--border2:#c8cddf;
+  --text:#1a1d2e;--text2:#4a5068;--text3:#8a90a8;
+  --accent:#2563eb;--accent2:#1d4ed8;
+  --green:#16a34a;--green-bg:#dcfce7;
+  --red:#dc2626;--red-bg:#fee2e2;
+  --yellow:#d97706;--yellow-bg:#fef3c7;
+  --purple:#7c3aed;--teal:#0d9488;
+  --radius:8px;--radius2:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow2:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:13px}
+
+/* HEADER */
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;box-shadow:var(--shadow)}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:16px 0 12px}
+.hdr-top h1{font-size:17px;font-weight:700;letter-spacing:-.3px;color:var(--text)}
+.hdr-top h1 span{color:var(--accent)}
+.updated{font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:4px 10px;border-radius:20px}
+.tabs{display:flex;gap:0;overflow-x:auto}
+.tab{padding:10px 18px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.tab:hover{color:var(--accent)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* MAIN */
+.main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
+.panel{display:none}.panel.active{display:block}
+
+/* CARDS / BOXES */
+.fbox{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 15px;font-size:11px;color:var(--text2);line-height:1.8;margin-bottom:16px;box-shadow:var(--shadow)}
+.fbox strong{color:var(--text)}
+.feq{font-family:monospace;font-size:10px;color:var(--accent);margin-top:3px;background:var(--bg3);padding:4px 8px;border-radius:4px;display:inline-block}
+.info-strip{background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1px solid #bfdbfe;border-radius:var(--radius);padding:10px 14px;font-size:11px;color:#1e40af;margin-bottom:16px}
+
+/* WEIGHTS */
+.wpanel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;box-shadow:var(--shadow)}
+.wt{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px}
+.wgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 20px}
+@media(max-width:580px){.wgrid{grid-template-columns:repeat(2,1fr)}}
+.sr{display:flex;flex-direction:column;gap:5px}
+.sl{display:flex;justify-content:space-between;font-size:11px;color:var(--text2)}
+.sl .val{font-weight:700;color:var(--accent);min-width:28px;text-align:right}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;height:4px}
+.wtot{font-size:10px;color:var(--text3);text-align:right;margin-top:10px}
+.wtot.warn{color:var(--yellow)}
+
+/* CONTROLS */
+.ctrl{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.ctrl select,.ctrl input{background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:11px;padding:6px 10px;border-radius:6px;outline:none;box-shadow:var(--shadow)}
+.ctrl select:focus,.ctrl input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37,99,235,.12)}
+.ctrl input{width:155px}
+.cbadge{font-size:10px;color:var(--text3);margin-left:auto}
+
+/* RANKINGS TABLE */
+.tw{overflow-x:auto;border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);background:var(--bg2)}
+table{width:100%;border-collapse:collapse;font-size:11px;background:var(--bg2)}
+thead th{text-align:left;font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;padding:10px 10px 10px;border-bottom:1px solid var(--border);background:var(--bg3);white-space:nowrap}
+thead th.r{text-align:right}
+tbody tr{transition:background .1s}
+tbody tr:hover{background:#f5f7ff}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+td.r{text-align:right}
+.rk{width:26px;text-align:center;font-size:10px;color:var(--text3);font-weight:700}
+.tnm{font-size:11px;font-weight:600;color:var(--text)}
+.tsub{font-size:9px;color:var(--text3);margin-top:1px}
+.flag{font-size:13px;margin-right:4px}
+.res-W{color:var(--green);font-weight:700}
+.res-D{color:var(--text2);font-weight:600}
+.res-L{color:var(--red);font-weight:700}
+.tag{display:inline-block;font-size:9px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-weight:600}
+.tag-e{background:var(--yellow-bg);color:var(--yellow);border:1px solid #fde68a}
+.tag-m{background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe}
+.tag-l{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.xgg{color:var(--green);font-weight:600}.xgm{color:var(--text2)}.xgb{color:var(--red);font-weight:600}
+.est{color:var(--text3);font-size:8px}
+.bw{display:flex;align-items:center;gap:6px;min-width:90px}
+.bb{flex:1;height:5px;border-radius:3px;background:var(--bg3);overflow:hidden}
+.bf{height:100%;border-radius:3px;transition:width .4s}
+.sv{font-size:12px;font-weight:700;color:var(--text);min-width:26px;text-align:right}
+.unplayed-row td{color:var(--text3);font-style:italic;background:var(--bg3)}
+.nodata{text-align:center;padding:32px;color:var(--text3);font-size:12px}
+
+/* PREDICTOR */
+.pred-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;box-shadow:var(--shadow);transition:box-shadow .15s}
+.mc:hover{box-shadow:var(--shadow2)}
+.mc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.mc-date{font-size:10px;color:var(--text3)}
+.mc-grp{font-size:10px;font-weight:700;color:var(--accent);background:#dbeafe;padding:2px 8px;border-radius:4px;border:1px solid #bfdbfe}
+.mc-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:14px}
+.mc-team{display:flex;flex-direction:column;gap:2px}
+.mc-team.away{align-items:flex-end;text-align:right}
+.mc-tname{font-size:13px;font-weight:700}
+.mc-sub{font-size:9px;color:var(--text3)}
+.mc-vs{font-size:11px;color:var(--text3);text-align:center;font-weight:500}
+.mc-probs{display:grid;grid-template-columns:1fr 1fr 1fr;margin-bottom:10px}
+.mc-prob{text-align:center}
+.pval{font-size:16px;font-weight:800}
+.plbl{font-size:9px;color:var(--text3);margin-top:2px;font-weight:500}
+.prob-win .pval{color:var(--green)}
+.prob-draw .pval{color:var(--text2)}
+.prob-lose .pval{color:var(--red)}
+.pbar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--bg3);margin-bottom:10px}
+.pb-w{background:var(--green)}
+.pb-d{background:#d1d5db}
+.pb-l{background:var(--red)}
+.mc-verd{font-size:10px;color:var(--text2);text-align:center;padding-top:8px;border-top:1px solid var(--border)}
+.mc-verd strong{color:var(--text)}
+.mc-nd{font-size:10px;color:var(--text3);text-align:center;padding:4px 0;font-style:italic}
+
+/* STANDINGS */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.gcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;box-shadow:var(--shadow)}
+.ghdr{padding:11px 15px;background:linear-gradient(135deg,var(--bg3),var(--bg4));border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.ghdr h3{font-size:12px;font-weight:700;color:var(--text)}
+.ghdr span{font-size:10px;color:var(--text3)}
+.gtable{width:100%;border-collapse:collapse;font-size:10px}
+.gtable th{text-align:right;padding:6px 10px;color:var(--text3);font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--bg3)}
+.gtable th:first-child{text-align:left}
+.gtable td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right}
+.gtable td:first-child{text-align:left}
+.gtable tr:last-child td{border-bottom:none}
+.gtable tr.qualify{background:linear-gradient(90deg,rgba(22,163,74,.05),transparent)}
+.gtable tr.bubble{background:linear-gradient(90deg,rgba(217,119,6,.05),transparent)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.dot-q{background:var(--green)}.dot-b{background:var(--yellow)}.dot-x{background:transparent;border:1.5px solid var(--text3)}
+.qkey{display:flex;gap:14px;font-size:10px;color:var(--text2);margin-bottom:14px;flex-wrap:wrap}
+.ki{display:flex;align-items:center;gap:5px}
+.tp{font-weight:700;font-size:11px;color:var(--text)}
+
+/* BRACKET */
+.bnote{background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1px solid #bfdbfe;border-radius:var(--radius);padding:12px 15px;font-size:11px;color:#1e3a5f;margin-bottom:16px;line-height:1.7}
+.bnote strong{color:var(--accent2)}
+
+/* Full knockout bracket */
+.mc-btn-primary{background:var(--accent);color:#fff;border:none;padding:8px 20px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer}
+.mc-btn-primary:hover{background:var(--accent2)}
+.mc-btn-primary:disabled{opacity:.5;cursor:not-allowed}
+
+/* FOOTER */
+.fn{font-size:10px;color:var(--text3);margin-top:18px;line-height:1.8}
+.fn a{color:var(--accent);text-decoration:none}
+
+/* UPDATE */
+.upd{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:12px 15px;margin-bottom:16px;box-shadow:var(--shadow)}
+.upd-h{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;color:var(--text)}
+.upd-h .tog{font-size:10px;color:var(--accent);cursor:pointer;font-weight:500}
+.upd-body{display:none;margin-top:10px}
+.upd-body ol{font-size:10px;color:var(--text2);padding-left:16px;line-height:2.3}
+.upd-body code{background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:9px;color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-top">
+    <h1>⚽ WC 2026 <span>Performance Tracker</span> & Predictor</h1>
+    <div class="updated" id="updated-lbl">Loading…</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="rankings">📊 Rankings</div>
+    <div class="tab" data-tab="predictor">🔮 Match Predictor</div>
+    <div class="tab" data-tab="standings">🏆 Group Standings</div>
+    <div class="tab" data-tab="bracket">🎲 Monte Carlo Bracket</div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- RANKINGS -->
+<div class="panel active" id="panel-rankings">
+  <div class="upd">
+    <div class="upd-h">📋 How to update after each matchday
+      <span class="tog" onclick="var b=this.closest('.upd').querySelector('.upd-body');b.style.display=b.style.display==='block'?'none':'block'">Show / Hide</span>
+    </div>
+    <div class="upd-body"><ol>
+      <li>Open <code>data.json</code> — update <code>"last_updated"</code> and <code>"matchday"</code></li>
+      <li>Add two entries to <code>"teams"</code> per completed match — include <code>sot</code> (shots on target), <code>corners</code>, <code>spg</code> (set piece goals), plus xgf/xga/poss/margin</li>
+      <li>Remove the team from <code>"unplayed"</code> once it has match data</li>
+      <li>Set <code>"est": false</code> once stats are Opta-confirmed</li>
+      <li>Commit and push to GitHub — site updates automatically in ~60s</li>
+    </ol></div>
+  </div>
+  <div class="fbox">
+    <strong>Performance Score</strong> — all metrics normalised 0–100, weights auto-normalise:<br>
+    <span class="feq">Score = (GoalMargin × W₁) + (ShotsOnTarget × W₂) + (xGF × W₃) + (xGA_defense × W₄) + (OppDifficulty × W₅) + (SetPieceGoals × W₆) + (Corners × W₇)</span><br>
+    <span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Teams yet to play are seeded by FIFA ranking. Shots on target, xG, and set piece goals are the strongest evidence-based predictors across 2014–2022. Adjust weights to update all tabs in real time.</span>
+  </div>
+  <div class="wpanel">
+    <div class="wt">Adjust formula weights</div>
+    <div class="wgrid">
+      <div class="sr"><div class="sl"><span>Goal margin</span><span class="val" id="o-gm">25%</span></div><input type="range" min="0" max="100" value="25" step="5" id="w-gm"></div>
+      <div class="sr"><div class="sl"><span>Shots on target</span><span class="val" id="o-sot">20%</span></div><input type="range" min="0" max="100" value="20" step="5" id="w-sot"></div>
+      <div class="sr"><div class="sl"><span>xGF (attack quality)</span><span class="val" id="o-xgf">15%</span></div><input type="range" min="0" max="100" value="15" step="5" id="w-xgf"></div>
+      <div class="sr"><div class="sl"><span>xGA (def. solidity)</span><span class="val" id="o-xga">15%</span></div><input type="range" min="0" max="100" value="15" step="5" id="w-xga"></div>
+      <div class="sr"><div class="sl"><span>Opp difficulty</span><span class="val" id="o-opp">15%</span></div><input type="range" min="0" max="100" value="15" step="5" id="w-opp"></div>
+      <div class="sr"><div class="sl"><span>Set piece goals</span><span class="val" id="o-spg">5%</span></div><input type="range" min="0" max="100" value="5" step="5" id="w-spg"></div>
+      <div class="sr"><div class="sl"><span>Corners</span><span class="val" id="o-cor">5%</span></div><input type="range" min="0" max="100" value="5" step="5" id="w-cor"></div>
+    </div>
+    <div class="wtot" id="wtot">Total: 100%</div>
+  </div>
+  <div class="ctrl">
+    <select id="rf-grp"><option value="">All groups</option></select>
+    <select id="rf-res"><option value="">All results</option><option value="W">Wins</option><option value="D">Draws</option><option value="L">Losses</option><option value="P">Yet to play</option></select>
+    <input type="text" id="rf-srch" placeholder="🔍 Search team…">
+    <span class="cbadge" id="r-count"></span>
+  </div>
+  <div class="tw"><table>
+    <colgroup><col style="width:26px"><col style="min-width:120px"><col style="width:48px"><col style="width:58px"><col style="width:36px"><col style="width:52px"><col style="width:74px"><col style="min-width:100px"></colgroup>
+    <thead><tr><th></th><th>Team</th><th class="r">Result</th><th class="r">Opp rank</th><th class="r">SoT</th><th class="r">Corners</th><th class="r">xGF / xGA</th><th>Score</th></tr></thead>
+    <tbody id="r-body"><tr><td colspan="7" class="nodata">Loading…</td></tr></tbody>
+  </table></div>
+  <div class="fn" id="r-note"></div>
+</div>
+
+<!-- PREDICTOR -->
+<div class="panel" id="panel-predictor">
+  <div class="info-strip">Probabilities are driven by each team's performance score. Completed matches show the <strong>actual result</strong> alongside the predicted probabilities so you can track how well the model performed. Upcoming fixtures show predictions only.</div>
+  <div class="ctrl">
+    <select id="pf-md"><option value="">All matchdays</option><option value="1">Matchday 1</option><option value="2">Matchday 2</option><option value="3">Matchday 3</option></select>
+    <select id="pf-grp"><option value="">All groups</option></select>
+    <select id="pf-status"><option value="">All matches</option><option value="played">Played only</option><option value="upcoming">Upcoming only</option></select>
+  </div>
+  <div id="pred-accuracy" style="display:none;background:#f8f9fb;border:1px solid #dde1ec;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11px;display:flex;gap:16px;flex-wrap:wrap;align-items:center"></div>
+  <div class="pred-grid" id="pred-grid"></div>
+</div>
+
+<!-- STANDINGS -->
+<div class="panel" id="panel-standings">
+  <div class="info-strip">Actual match points are locked in. Remaining fixtures are simulated using predicted probabilities — expected points are added for each unplayed game. Adjust weights on Rankings to see how the standings shift.</div>
+  <div class="qkey">
+    <div class="ki"><span class="dot dot-q"></span>Projected top 2 (auto-qualify)</div>
+    <div class="ki"><span class="dot dot-b"></span>3rd place bubble (may qualify)</div>
+    <div class="ki"><span class="dot dot-x"></span>Projected out</div>
+  </div>
+  <div class="sgrid" id="standings-grid"></div>
+</div>
+
+<!-- BRACKET / MONTE CARLO -->
+<div class="panel" id="panel-bracket">
+  <div class="bnote">
+    <strong>Monte Carlo bracket</strong> — 10,000 simulated tournaments. Each slot shows the most likely team to reach that position, with their probability. Heat colours show confidence: <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#16a34a;vertical-align:middle"></span> strong favourite &nbsp;<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#2563eb;vertical-align:middle"></span> likely &nbsp;<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#d97706;vertical-align:middle"></span> possible &nbsp;<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#9ca3af;vertical-align:middle"></span> unlikely. Scroll right on small screens.
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+    <button id="mc-run-btn" style="padding:8px 20px;font-size:12px;font-weight:600;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;box-shadow:0 1px 3px rgba(37,99,235,.3)">&#9654; Run 10,000 simulations</button>
+    <div id="mc-status" style="font-size:11px;color:#4a5068">Click to simulate the full tournament</div>
+  </div>
+  <div id="mc-results" style="display:none">
+    <!-- Visual bracket -->
+    <div style="overflow-x:auto;padding-bottom:12px;margin-bottom:20px">
+      <div id="mc-bracket-visual"></div>
+    </div>
+    <!-- Probability table toggle -->
+    <details style="margin-top:8px">
+      <summary style="font-size:11px;font-weight:600;color:#2563eb;cursor:pointer;padding:8px 0;user-select:none">📊 Show full probability table (all 48 teams)</summary>
+      <div id="mc-stage-grids" style="margin-top:12px"></div>
+    </details>
+  </div>
+</div>
+
+</div>
+
+<script>
+let DATA=[],FIXTURES=[],GROUPS={},UNPLAYED=[],FIFA_RANKS={},SCORES={};
+const medals=['🥇','🥈','🥉'];
+const BC=['#2563eb','#2563eb','#16a34a','#16a34a','#65a30d','#65a30d','#d97706','#d97706','#6b7280','#6b7280','#6b7280','#6b7280','#6b7280'];
+
+// TABS
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+}));
+
+async function load(){
+  try{
+    const j=await(await fetch('data.json?v='+Date.now())).json();
+    DATA=j.teams||[];FIXTURES=j.fixtures||[];GROUPS=j.groups||{};
+    UNPLAYED=j.unplayed||[];FIFA_RANKS=j.fifaRankings||{};
+    document.getElementById('updated-lbl').textContent='🕒 Updated '+j.meta.last_updated+' · MD'+j.meta.matchday;
+    document.getElementById('r-note').innerHTML='† estimated stats. xG: <a href="https://soccer.realgm.com/analysis/559" target="_blank">RealGM</a> · <a href="https://xgscore.io/xg-statistics/world-cup/2026" target="_blank">xGscore</a>. SoT + corners: <a href="https://www.sofascore.com/football/tournament/world/world-championship/16" target="_blank">Sofascore</a> match pages. '+j.meta.notes;
+    const grps=[...new Set([...DATA.map(t=>t.group),...UNPLAYED.map(t=>t.group)])].sort();
+    ['rf-grp','pf-grp'].forEach(id=>{const el=document.getElementById(id);grps.forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent='Group '+g;el.appendChild(o);});});
+    renderAll();
+  }catch(e){document.getElementById('r-body').innerHTML='<tr><td colspan="7" class="nodata">⚠️ Could not load data.json</td></tr>';}
+}
+
+function gw(){return['gm','sot','xgf','xga','opp','spg','cor'].map(k=>+document.getElementById('w-'+k).value);}
+
+// Compute scores for teams with match data; use FIFA rank for unplayed
+function computeScores(){
+  const sc={};
+  if(!DATA.length&&!UNPLAYED.length)return sc;
+  const margins=DATA.map(t=>t.margin);
+  const maxM=DATA.length?Math.max(...margins):1,minM=DATA.length?Math.min(...margins):0;
+  const maxSot=DATA.length?Math.max(...DATA.map(t=>t.sot||0)):1;
+  const maxXgf=DATA.length?Math.max(...DATA.map(t=>t.xgf)):1;
+  const maxXga=DATA.length?Math.max(...DATA.map(t=>t.xga)):1;
+  const maxSpg=DATA.length?Math.max(...DATA.map(t=>t.spg||0),1):1;
+  const maxCor=DATA.length?Math.max(...DATA.map(t=>t.corners||0)):1;
+  const norm=(v,mx,mn=0)=>mx>mn?(v-mn)/(mx-mn)*100:50;
+  const w=gw();const tot=w.reduce((a,b)=>a+b,0)||1;
+  DATA.forEach(t=>{
+    const raw=norm(t.margin,maxM,minM)*w[0]
+      +norm(t.sot||0,maxSot)*w[1]
+      +norm(t.xgf,maxXgf)*w[2]
+      +norm(Math.max(0,maxXga-t.xga),maxXga)*w[3]
+      +norm(Math.max(0,101-t.oppRank),100)*w[4]
+      +norm(t.spg||0,maxSpg)*w[5]
+      +norm(t.corners||0,maxCor)*w[6];
+    sc[t.name]=raw/tot;
+  });
+  // Unplayed: interpolate from FIFA rank into the score range
+  const scVals=Object.values(sc);
+  const scMax=scVals.length?Math.max(...scVals):100;
+  const scMin=scVals.length?Math.min(...scVals):0;
+  UNPLAYED.forEach(t=>{
+    const rank=t.fifaRank||FIFA_RANKS[t.name]||50;
+    // Better FIFA rank → higher score, scaled within observed range
+    const rankScore=(1-Math.min(rank,50)/50)*100;
+    // Map into observed score range with some compression
+    const mapped=scMin+(rankScore/100)*(scMax-scMin)*0.85;
+    sc[t.name]=mapped;
+  });
+  return sc;
+}
+
+function matchProbs(sA,sB){
+  const diff=sA-sB,k=0.06;
+  const pW=1/(1+Math.exp(-k*diff));
+  const pD=Math.max(0.08,0.22-Math.abs(diff)*0.008);
+  return{win:pW*(1-pD),draw:pD,lose:(1-pW)*(1-pD)};
+}
+function ts(name){return SCORES[name]!==undefined?SCORES[name]:50;}
+
+function renderAll(){
+  updateWL();SCORES=computeScores();
+  renderRankings();renderPredictor();renderStandings();renderBracket();
+}
+function updateWL(){
+  const w=gw();
+  ['gm','sot','xgf','xga','opp','spg','cor'].forEach((k,i)=>document.getElementById('o-'+k).textContent=w[i]+'%');
+  const tot=w.reduce((a,b)=>a+b,0);
+  const el=document.getElementById('wtot');
+  el.textContent='Total: '+tot+'%';el.className='wtot'+(tot!==100?' warn':'');
+}
+
+// RANKINGS
+function renderRankings(){
+  const allTeams=[
+    ...DATA.map(t=>({...t,score:SCORES[t.name]||0,played:true})),
+    ...UNPLAYED.map(t=>({name:t.name,flag:t.flag,group:t.group,opp:'—',oppRank:t.fifaRank||50,result:'—',outcome:'P',margin:0,poss:0,xgf:0,xga:0,est:false,score:SCORES[t.name]||0,played:false}))
+  ].sort((a,b)=>b.score-a.score);
+  const maxS=allTeams[0]?.score||1;
+  const grp=document.getElementById('rf-grp').value;
+  const res=document.getElementById('rf-res').value;
+  const srch=document.getElementById('rf-srch').value.toLowerCase();
+  const filt=allTeams.filter(t=>(!grp||t.group===grp)&&(!res||(res==='P'?!t.played:t.outcome===res))&&(!srch||t.name.toLowerCase().includes(srch)||(t.opp||'').toLowerCase().includes(srch)));
+  document.getElementById('r-count').textContent=filt.length+' of '+allTeams.length+' teams';
+  const oc=r=>r<=15?'tag-e':r<=50?'tag-m':'tag-l';
+  const xfc=v=>v>=2.0?'xgg':v>=1.0?'xgm':'xgb';
+  const xac=v=>v<=0.60?'xgg':v<=1.30?'xgm':'xgb';
+  document.getElementById('r-body').innerHTML=filt.length?filt.map(t=>{
+    const gr=allTeams.indexOf(t)+1,pct=Math.round((t.score/maxS)*100);
+    const bc=BC[Math.min(gr-1,BC.length-1)];
+    if(!t.played){
+      const rank=t.oppRank;
+      return`<tr class="unplayed-row">
+        <td class="rk">${gr}</td>
+        <td><span class="flag">${t.flag}</span><span class="tnm">${t.name}</span><div class="tsub">Grp ${t.group} · Yet to play</div></td>
+        <td class="r" style="color:var(--text3)">—</td>
+        <td class="r"><span class="tag ${oc(rank)}">#${rank}</span></td>
+        <td class="r" style="color:var(--text3)">—</td>
+        <td class="r" style="color:var(--text3)">—</td>
+        <td class="r" style="color:var(--text3)">— / —</td>
+        <td><div class="bw"><div class="bb"><div class="bf" style="width:${pct}%;background:#93c5fd"></div></div><span class="sv" style="color:var(--text3)">${t.score.toFixed(1)}</span></div></td>
+      </tr>`;
+    }
+    const est=t.est?'<span class="est">†</span>':'';
+    return`<tr>
+      <td class="rk">${gr<=3?medals[gr-1]:gr}</td>
+      <td><span class="flag">${t.flag}</span><span class="tnm">${t.name}</span><div class="tsub">Grp ${t.group} · vs ${t.opp}</div></td>
+      <td class="r res-${t.outcome}">${t.result}</td>
+      <td class="r"><span class="tag ${oc(t.oppRank)}">#${t.oppRank}</span></td>
+      <td class="r" style="color:var(--text2)">${t.sot||'—'}</td>
+      <td class="r" style="color:var(--text2)">${t.corners||'—'}</td>
+      <td class="r" style="line-height:1.6"><span class="${xfc(t.xgf)}">${t.xgf.toFixed(2)}${est}</span><span style="color:var(--text3)"> / </span><span class="${xac(t.xga)}">${t.xga.toFixed(2)}${est}</span></td>
+      <td><div class="bw"><div class="bb"><div class="bf" style="width:${pct}%;background:${bc}"></div></div><span class="sv">${t.score.toFixed(1)}</span></div></td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="7" class="nodata">No teams match the selected filters.</td></tr>';
+}
+
+// PREDICTOR
+function renderPredictor(){
+  const mdF=document.getElementById('pf-md').value;
+  const grpF=document.getElementById('pf-grp').value;
+  const statusF=document.getElementById('pf-status').value;
+  const fixes=FIXTURES.filter(f=>
+    (!mdF||String(f.md)===mdF)&&
+    (!grpF||f.group===grpF)&&
+    (!statusF||(statusF==='played'?f.played===true:f.played!==true))
+  );
+
+  // Compute model accuracy on played fixtures
+  const playedFixes=FIXTURES.filter(f=>f.played===true&&f.homeScore!==null);
+  let correct=0,total=playedFixes.length;
+  playedFixes.forEach(f=>{
+    const hS2=ts(f.home),aS2=ts(f.away);
+    const p2=matchProbs(hS2,aS2);
+    const pW2=p2.win,pD2=p2.draw,pL2=p2.lose;
+    const pred=pW2>pD2&&pW2>pL2?'home':pL2>pD2&&pL2>pW2?'away':'draw';
+    const actual=f.homeScore>f.awayScore?'home':f.homeScore<f.awayScore?'away':'draw';
+    if(pred===actual)correct++;
+  });
+  const accEl=document.getElementById('pred-accuracy');
+  if(total>0){
+    accEl.style.display='flex';
+    accEl.innerHTML=`
+      <span style="font-weight:600;color:#1a1d2e">Model accuracy on ${total} completed matches:</span>
+      <span style="font-weight:700;color:#16a34a;font-size:13px">${correct}/${total} correct (${Math.round(correct/total*100)}%)</span>
+      <span style="color:#8a90a8">· Correct = model's top prediction matched actual outcome</span>
+    `;
+  } else { accEl.style.display='none'; }
+  document.getElementById('pred-grid').innerHTML=fixes.length?fixes.map(f=>{
+    const hD=DATA.find(t=>t.name===f.home);
+    const aD=DATA.find(t=>t.name===f.away);
+    const hS=ts(f.home),aS=ts(f.away);
+    const p=matchProbs(hS,aS);
+    const pW=Math.round(p.win*100),pD=Math.round(p.draw*100),pL=Math.round(p.lose*100);
+    const isPlayed=f.played===true;
+    const hScore=f.homeScore,aScore=f.awayScore;
+
+    // Determine actual outcome
+    let actualOutcome=null;
+    if(isPlayed&&hScore!==null&&aScore!==null){
+      actualOutcome=hScore>aScore?'home':hScore<aScore?'away':'draw';
+    }
+    // Determine predicted outcome
+    const predOutcome=pW>pD&&pW>pL?'home':pL>pD&&pL>pW?'away':'draw';
+    const correct=actualOutcome&&actualOutcome===predOutcome;
+
+    // Verdict text
+    let v='';
+    if(pW>55)v=`<strong>${f.home}</strong> favoured`;
+    else if(pL>55)v=`<strong>${f.away}</strong> favoured`;
+    else if(pW>45)v=`Slight edge to <strong>${f.home}</strong>`;
+    else if(pL>45)v=`Slight edge to <strong>${f.away}</strong>`;
+    else v='Too close to call';
+
+    // Actual result badge
+    const resultBadge=isPlayed&&hScore!==null?`
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0 4px;border-top:1px solid #dde1ec;margin-top:4px">
+        <span style="font-size:10px;font-weight:600;color:#8a90a8;letter-spacing:.05em;text-transform:uppercase">Actual</span>
+        <span style="font-size:18px;font-weight:800;color:${correct?'#16a34a':'#dc2626'}">${hScore} – ${aScore}</span>
+        <span style="font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;background:${correct?'#dcfce7':'#fee2e2'};color:${correct?'#16a34a':'#dc2626'}">${correct?'✓ Correct':'✗ Upset'}</span>
+      </div>`:'';
+
+    // Highlight winning team names
+    const hStyle=isPlayed&&actualOutcome==='home'?'color:#16a34a;font-weight:700':'';
+    const aStyle=isPlayed&&actualOutcome==='away'?'color:#16a34a;font-weight:700':'';
+
+    return`<div class="mc" style="${isPlayed?'border-color:#c8cddf;':''}">
+      <div class="mc-head">
+        <span class="mc-date">MD${f.md} · ${f.date}</span>
+        <div style="display:flex;gap:5px;align-items:center">
+          ${isPlayed?`<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#f1f3f7;color:#8a90a8;font-weight:500">Played</span>`:''}
+          <span class="mc-grp">Group ${f.group}</span>
+        </div>
+      </div>
+      <div class="mc-teams">
+        <div class="mc-team">
+          <div><span class="flag">${hD?.flag||'🏳️'}</span><span class="mc-tname" style="${hStyle}">${f.home}</span></div>
+          <div class="mc-sub">Perf score: ${hS.toFixed(1)}</div>
+        </div>
+        <div class="mc-vs">${isPlayed&&hScore!==null?`<span style="font-size:15px;font-weight:700;color:#1a1d2e">${hScore}–${aScore}</span>`:'vs'}</div>
+        <div class="mc-team away">
+          <div><span class="mc-tname" style="${aStyle}">${f.away}</span><span class="flag">${aD?.flag||'🏳️'}</span></div>
+          <div class="mc-sub">Perf score: ${aS.toFixed(1)}</div>
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:600;color:#8a90a8;letter-spacing:.05em;text-transform:uppercase;margin:8px 0 4px">${isPlayed?'Predicted probabilities':'Win probabilities'}</div>
+      <div class="mc-probs">
+        <div class="mc-prob prob-win"><div class="pval">${pW}%</div><div class="plbl">${f.home} Win</div></div>
+        <div class="mc-prob prob-draw"><div class="pval">${pD}%</div><div class="plbl">Draw</div></div>
+        <div class="mc-prob prob-lose"><div class="pval">${pL}%</div><div class="plbl">${f.away} Win</div></div>
+      </div>
+      <div class="pbar"><div class="pb-w" style="width:${pW}%;height:7px"></div><div class="pb-d" style="width:${pD}%;height:7px"></div><div class="pb-l" style="flex:1;height:7px"></div></div>
+      ${isPlayed?resultBadge:`<div class="mc-verd">${v}</div>`}
+    </div>`;
+  }).join(''):'<div class="nodata">No fixtures match filters.</div>';
+}
+
+// STANDINGS SIMULATION
+function simStandings(){
+  const pts={},gd={},played={};
+  const allTeamNames=new Set([...DATA.map(t=>t.name),...UNPLAYED.map(t=>t.name)]);
+  allTeamNames.forEach(t=>{pts[t]=0;gd[t]=0;played[t]=false;});
+  DATA.forEach(t=>{
+    if(t.outcome==='W')pts[t.name]=(pts[t.name]||0)+3;
+    else if(t.outcome==='D')pts[t.name]=(pts[t.name]||0)+1;
+    gd[t.name]=(gd[t.name]||0)+t.margin;
+    played[t.name]=true;
+  });
+  FIXTURES.forEach(f=>{
+    const p=matchProbs(ts(f.home),ts(f.away));
+    pts[f.home]=(pts[f.home]||0)+p.win*3+p.draw;
+    pts[f.away]=(pts[f.away]||0)+(1-p.win-p.draw)*3+p.draw;
+    gd[f.home]=(gd[f.home]||0)+(p.win-p.lose)*1.2;
+    gd[f.away]=(gd[f.away]||0)+(p.lose-p.win)*1.2;
+  });
+  return{pts,gd,played};
+}
+
+function renderStandings(){
+  const{pts,gd,played}=simStandings();
+  document.getElementById('standings-grid').innerHTML=Object.keys(GROUPS).sort().map(g=>{
+    const teams=GROUPS[g].slice().sort((a,b)=>(pts[b]||0)-(pts[a]||0)||(gd[b]||0)-(gd[a]||0));
+    return`<div class="gcard"><div class="ghdr"><h3>Group ${g}</h3><span>Proj Pts · GD · Perf</span></div>
+    <table class="gtable"><thead><tr><th>Team</th><th>Pts</th><th>GD</th><th>Perf</th></tr></thead><tbody>
+    ${teams.map((t,i)=>{
+      const td=[...DATA,...UNPLAYED].find(d=>d.name===t);
+      const dc=i<2?'dot-q':i===2?'dot-b':'dot-x';
+      const rc=i<2?'qualify':i===2?'bubble':'';
+      const gdv=gd[t]||0,ptsv=pts[t]||0;
+      const isPlayed=played[t];
+      return`<tr class="${rc}"><td><span class="dot ${dc}"></span>${td?td.flag:''} ${t}${!isPlayed?' <span style="font-size:9px;color:var(--text3)">(MD1 today)</span>':''}</td>
+        <td><span class="tp">${ptsv.toFixed(1)}</span></td>
+        <td style="color:${gdv>=0?'var(--green)':'var(--red)'}">${gdv>0?'+':''}${gdv.toFixed(1)}</td>
+        <td style="color:var(--text2);font-size:10px">${SCORES[t]?SCORES[t].toFixed(0):'—'}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+  }).join('');
+}
+
+// FULL BRACKET SIMULATION
+function getTeamData(name){
+  return [...DATA,...UNPLAYED].find(t=>t.name===name)||{flag:'🏳️',name};
+}
+
+// ── Monte Carlo engine ────────────────────────────────────────────────────────
+
+function mcSampleWinner(sA, sB) {
+  // Logistic model + noise so upsets happen at realistic rates
+  const diff = sA - sB;
+  const k = 0.055;
+  const pW = 1 / (1 + Math.exp(-k * diff));
+  const pD = Math.max(0.08, 0.22 - Math.abs(diff) * 0.008);
+  const pWadj = pW * (1 - pD);
+  const r = Math.random();
+  if (r < pWadj) return 'home';
+  if (r < pWadj + pD) return 'draw';
+  return 'away';
+}
+
+function mcSimGroupStage() {
+  // Returns {pts, gd} including simulated unplayed matches
+  const pts = {}, gd = {};
+  const allNames = new Set([...DATA.map(t=>t.name), ...UNPLAYED.map(t=>t.name)]);
+  allNames.forEach(t => { pts[t]=0; gd[t]=0; });
+
+  // Lock in actual results
+  DATA.forEach(t => {
+    if (t.outcome==='W') pts[t.name]=(pts[t.name]||0)+3;
+    else if (t.outcome==='D') pts[t.name]=(pts[t.name]||0)+1;
+    gd[t.name]=(gd[t.name]||0)+t.margin;
+  });
+
+  // Simulate remaining fixtures stochastically
+  FIXTURES.forEach(f => {
+    if (!allNames.has(f.home) || !allNames.has(f.away)) return;
+    const hS=ts(f.home), aS=ts(f.away);
+    const res=mcSampleWinner(hS, aS);
+    // Simulate goal margin from score difference
+    const strengthDiff = (hS - aS) / 20;
+    const goals = Math.max(0, Math.round(1.2 + strengthDiff + (Math.random()-0.5)*1.5));
+    if (res==='home') {
+      pts[f.home]=(pts[f.home]||0)+3;
+      gd[f.home]=(gd[f.home]||0)+Math.max(1, goals);
+      gd[f.away]=(gd[f.away]||0)-Math.max(1, goals);
+    } else if (res==='draw') {
+      pts[f.home]=(pts[f.home]||0)+1;
+      pts[f.away]=(pts[f.away]||0)+1;
+    } else {
+      pts[f.away]=(pts[f.away]||0)+3;
+      gd[f.away]=(gd[f.away]||0)+Math.max(1, goals);
+      gd[f.home]=(gd[f.home]||0)-Math.max(1, goals);
+    }
+  });
+  return {pts, gd};
+}
+
+function mcGetQualifiers(pts, gd) {
+  const groupRankings = {};
+  Object.keys(GROUPS).sort().forEach(g => {
+    groupRankings[g] = GROUPS[g].slice().sort((a,b) =>
+      (pts[b]||0)-(pts[a]||0) || (gd[b]||0)-(gd[a]||0)
+    );
+  });
+  const winners = Object.keys(GROUPS).sort().map(g => groupRankings[g][0]);
+  const runners = Object.keys(GROUPS).sort().map(g => groupRankings[g][1]);
+  const thirds = Object.keys(GROUPS).sort()
+    .map(g => ({ team: groupRankings[g][2], pts: pts[groupRankings[g][2]]||0, gd: gd[groupRankings[g][2]]||0 }))
+    .sort((a,b) => b.pts-a.pts || b.gd-a.gd)
+    .slice(0,8).map(t=>t.team);
+  return { winners, runners, thirds, qualified: [...winners, ...runners, ...thirds] };
+}
+
+function mcSimKnockout(teams) {
+  // Returns the champion of this bracket
+  let remaining = [...teams];
+  while (remaining.length > 1) {
+    const next = [];
+    for (let i = 0; i < remaining.length; i += 2) {
+      if (!remaining[i+1]) { next.push(remaining[i]); continue; }
+      const res = mcSampleWinner(ts(remaining[i]), ts(remaining[i+1]));
+      // In knockout, draw = extra time/pens — coin flip weighted by score
+      next.push(res === 'away' ? remaining[i+1] : remaining[i]);
+    }
+    remaining = next;
+  }
+  return remaining[0];
+}
+
+let MC_RESULTS = null;
+
+function runMonteCarlo(N=10000) {
+  const btn = document.getElementById('mc-run-btn');
+  const status = document.getElementById('mc-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Simulating…';
+
+  // Use setTimeout to let UI update before heavy computation
+  setTimeout(() => {
+    const counts = {};
+    const stages = ['r32','r16','qf','sf','final','champion'];
+    const allNames = [...DATA.map(t=>t.name), ...UNPLAYED.map(t=>t.name)];
+    allNames.forEach(t => {
+      counts[t] = { r32:0, r16:0, qf:0, sf:0, final:0, champion:0 };
+    });
+
+    for (let sim = 0; sim < N; sim++) {
+      const {pts, gd} = mcSimGroupStage();
+      const {qualified} = mcGetQualifiers(pts, gd);
+
+      qualified.forEach(t => { if(counts[t]) counts[t].r32++; });
+
+      // Simulate knockout rounds
+      let round = [...qualified];
+      const stageNames = ['r16','qf','sf','final','champion'];
+      let stageIdx = 0;
+
+      while (round.length > 1 && stageIdx < stageNames.length) {
+        const next = [];
+        for (let i = 0; i < round.length; i += 2) {
+          if (!round[i+1]) { next.push(round[i]); continue; }
+          const res = mcSampleWinner(ts(round[i]), ts(round[i+1]));
+          next.push(res === 'away' ? round[i+1] : round[i]);
+        }
+        next.forEach(t => { if(counts[t]) counts[t][stageNames[stageIdx]]++; });
+        round = next;
+        stageIdx++;
+      }
+    }
+
+    // Convert to percentages
+    Object.keys(counts).forEach(t => {
+      stages.forEach(s => { counts[t][s] = Math.round(counts[t][s] / N * 100); });
+    });
+
+    MC_RESULTS = { counts, N };
+    renderMCResults();
+    btn.disabled = false;
+    btn.textContent = '▶ Re-run 10,000 simulations';
+    status.textContent = `Last run: ${N.toLocaleString()} simulations completed`;
+  }, 20);
+}
+
+function slotColor(pct) {
+  if (pct >= 30) return {bg:'#dcfce7',border:'#16a34a',text:'#14532d',bar:'#16a34a'};
+  if (pct >= 15) return {bg:'#dbeafe',border:'#2563eb',text:'#1e3a8a',bar:'#2563eb'};
+  if (pct >= 6)  return {bg:'#fef3c7',border:'#d97706',text:'#78350f',bar:'#d97706'};
+  return           {bg:'#f3f4f6',border:'#9ca3af',text:'#4b5563',bar:'#9ca3af'};
+}
+
+function getBestTeam(counts, stage) {
+  // Returns sorted list of {name, flag, group, pct} for a given stage
+  const allTeams = DATA.map(t=>({name:t.name,flag:t.flag,group:t.group}));
+  return allTeams
+    .map(t => ({...t, pct: counts[t.name]?.[stage]||0}))
+    .sort((a,b) => b.pct - a.pct);
+}
+
+function renderBracketVisual(counts) {
+  // Build bracket: R32 (32 slots), R16 (16), QF (8), SF (4), F (2), Champion (1)
+  // We show the most-likely team per slot, paired as they'd face each other
+  const stages = ['r32','r16','qf','sf','final','champion'];
+  const stageLabels = ['Round of 32','Round of 16','Quarter-finals','Semi-finals','Final','🏆 Champion'];
+  const stageCounts = [32,16,8,4,2,1];
+
+  // For each stage, rank teams by probability
+  const ranked = {};
+  stages.forEach(s => { ranked[s] = getBestTeam(counts, s); });
+
+  // Slot height and spacing config
+  const slotH = 44;      // px per slot
+  const slotW = 148;     // px per slot
+  const gapX = 32;       // horizontal gap between stages
+  const padTop = 28;     // top padding for stage labels
+  const padLeft = 8;
+
+  // Calculate total SVG height based on R32 (32 slots, pairs with 4px gap, 12px between pairs)
+  const pairGap = 4;
+  const groupGap = 14;
+  // R32: 32 slots = 16 pairs. Each pair: 2*slotH + pairGap. Between pairs: groupGap.
+  const r32Height = 16*(2*slotH + pairGap) + 15*groupGap;
+  const svgH = r32Height + padTop + 20;
+  const svgW = 6*(slotW + gapX) + padLeft*2 - gapX;
+
+  // Pre-compute Y centers for each slot in R32 (16 pairs)
+  const r32Ys = [];
+  let y = padTop;
+  for (let i = 0; i < 16; i++) {
+    r32Ys.push(y + slotH/2);           // top of pair
+    r32Ys.push(y + slotH + pairGap + slotH/2); // bottom of pair
+    y += 2*slotH + pairGap + groupGap;
+  }
+
+  // For subsequent rounds, Y centers are midpoints of their feeder pairs
+  function getMidY(ys, stage) {
+    // stage 0=r32(32slots), 1=r16(16), 2=qf(8), 3=sf(4), 4=f(2), 5=champ(1)
+    if (stage === 0) return ys;
+    const prev = getMidY(ys, stage - 1);
+    const result = [];
+    for (let i = 0; i < prev.length; i += 2) {
+      result.push((prev[i] + prev[i+1]) / 2);
+    }
+    return result;
+  }
+
+  const allYs = [];
+  for (let s = 0; s <= 5; s++) allYs.push(getMidY(r32Ys, s));
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:block">`;
+
+  // Background
+  svg += `<rect width="${svgW}" height="${svgH}" fill="#f8f9fb" rx="10"/>`;
+
+  // Stage column headers
+  stages.forEach((s, si) => {
+    const x = padLeft + si*(slotW+gapX) + slotW/2;
+    svg += `<text x="${x}" y="${padTop-8}" text-anchor="middle" font-size="9" font-weight="700" fill="#8a90a8" letter-spacing="0.06em" text-transform="uppercase">${stageLabels[si].toUpperCase()}</text>`;
+  });
+
+  // Draw connector lines first (behind slots)
+  for (let si = 0; si < 5; si++) {
+    const fromYs = allYs[si];
+    const toYs = allYs[si+1];
+    const fromX = padLeft + si*(slotW+gapX) + slotW;
+    const toX = padLeft + (si+1)*(slotW+gapX);
+    const midX = fromX + gapX/2;
+
+    for (let i = 0; i < toYs.length; i++) {
+      const y1 = fromYs[i*2];
+      const y2 = fromYs[i*2+1];
+      const yT = toYs[i];
+      // Bracket elbow: right from slot, down/up to midpoint, right to next slot
+      svg += `<path d="M${fromX},${y1} H${midX} V${yT} H${toX}" fill="none" stroke="#dde1ec" stroke-width="1.5"/>`;
+      svg += `<path d="M${fromX},${y2} H${midX}" fill="none" stroke="#dde1ec" stroke-width="1.5"/>`;
+    }
+  }
+
+  // Draw slots
+  stages.forEach((stage, si) => {
+    const x = padLeft + si*(slotW+gapX);
+    const teamsForStage = ranked[stage];
+    const ys = allYs[si];
+    const n = stageCounts[si];
+
+    for (let i = 0; i < n; i++) {
+      const team = teamsForStage[i] || {name:'TBD',flag:'',pct:0,group:''};
+      const yCenter = ys[i];
+      const yTop = yCenter - slotH/2 + 2;
+      const c = slotColor(team.pct);
+
+      // Slot background
+      svg += `<rect x="${x}" y="${yTop}" width="${slotW}" height="${slotH-4}" rx="5" fill="${c.bg}" stroke="${c.border}" stroke-width="1.2"/>`;
+
+      // Confidence bar at bottom of slot
+      const barW = Math.round((team.pct/100) * (slotW-8));
+      svg += `<rect x="${x+4}" y="${yTop+slotH-10}" width="${slotW-8}" height="3" rx="1.5" fill="#e5e7eb"/>`;
+      if (barW > 0) svg += `<rect x="${x+4}" y="${yTop+slotH-10}" width="${barW}" height="3" rx="1.5" fill="${c.bar}"/>`;
+
+      // Flag + name
+      if (si < 5) {
+        svg += `<text x="${x+8}" y="${yTop+16}" font-size="14">${team.flag}</text>`;
+        const nameW = slotW - 38;
+        svg += `<text x="${x+26}" y="${yTop+16}" font-size="10.5" font-weight="600" fill="${c.text}" clip-path="url(#cp${si}${i})">${team.name}</text>`;
+        svg += `<text x="${x+slotW-6}" y="${yTop+16}" text-anchor="end" font-size="9.5" font-weight="700" fill="${c.bar}">${team.pct}%</text>`;
+        // Group tag
+        if (team.group) svg += `<text x="${x+8}" y="${yTop+30}" font-size="8.5" fill="#9ca3af">Group ${team.group}</text>`;
+      } else {
+        // Champion slot — bigger
+        svg += `<text x="${x+slotW/2}" y="${yTop+12}" text-anchor="middle" font-size="18">${team.flag}</text>`;
+        svg += `<text x="${x+slotW/2}" y="${yTop+28}" text-anchor="middle" font-size="11" font-weight="700" fill="${c.text}">${team.name}</text>`;
+        svg += `<text x="${x+slotW/2}" y="${yTop+40}" text-anchor="middle" font-size="13" font-weight="800" fill="${c.bar}">${team.pct}%</text>`;
+      }
+    }
+  });
+
+  svg += '</svg>';
+  return svg;
+}
+
+function renderMCResults() {
+  if (!MC_RESULTS) return;
+  const { counts } = MC_RESULTS;
+  document.getElementById('mc-results').style.display = 'block';
+
+  // Visual bracket
+  document.getElementById('mc-bracket-visual').innerHTML = renderBracketVisual(counts);
+
+  // Probability table (inside <details>)
+  const stageConfig = [
+    { key:'r32',    label:'R32',         color:'#6b7280' },
+    { key:'r16',    label:'R16',         color:'#2563eb' },
+    { key:'qf',     label:'QF',          color:'#7c3aed' },
+    { key:'sf',     label:'SF',          color:'#0d9488' },
+    { key:'final',  label:'Final',       color:'#d97706' },
+    { key:'champion',label:'Champion',   color:'#16a34a' },
+  ];
+  const allTeams = DATA.map(t=>({name:t.name,flag:t.flag,group:t.group}));
+  const sorted = allTeams.filter(t=>counts[t.name]).sort((a,b)=>(counts[b.name]?.champion||0)-(counts[a.name]?.champion||0));
+
+  let tableHtml = `<div style="background:#fff;border:1px solid #dde1ec;border-radius:10px;overflow:hidden">
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:500px">
+      <thead><tr style="background:#f8f9fb">
+        <th style="text-align:left;padding:8px 10px;border-bottom:1px solid #dde1ec;font-size:9px;font-weight:700;color:#8a90a8;letter-spacing:.05em;text-transform:uppercase">Team</th>
+        ${stageConfig.map(s=>`<th style="text-align:center;padding:8px 6px;border-bottom:1px solid #dde1ec;font-size:9px;font-weight:700;color:${s.color};letter-spacing:.04em;text-transform:uppercase">${s.label}</th>`).join('')}
+      </tr></thead><tbody>
+      ${sorted.map((t,idx)=>{
+        const c=counts[t.name]||{};
+        return `<tr style="background:${idx%2?'#fafbfc':'#fff'}">
+          <td style="padding:7px 10px;border-bottom:1px solid #f1f3f7">
+            <span style="font-size:13px;margin-right:4px">${t.flag}</span>
+            <span style="font-weight:600;color:#1a1d2e">${t.name}</span>
+            <span style="font-size:9px;color:#9ca3af;margin-left:4px">Grp ${t.group}</span>
+          </td>
+          ${stageConfig.map(s=>{
+            const pct=c[s.key]||0;
+            return `<td style="text-align:center;padding:7px 6px;border-bottom:1px solid #f1f3f7;background:${pct>0?s.color+'18':'transparent'}">
+              <span style="font-size:11px;font-weight:${pct>0?'600':'400'};color:${pct>0?s.color:'#d1d5db'}">${pct>0?pct+'%':'—'}</span>
+            </td>`;
+          }).join('')}
+        </tr>`;
+      }).join('')}
+      </tbody></table></div></div>`;
+
+  document.getElementById('mc-stage-grids').innerHTML = tableHtml;
+}
+
+function renderBracket() {
+  // Bracket tab now shows MC results or prompt to run
+  if (!MC_RESULTS) {
+    document.getElementById('mc-status').textContent = 'Ready — click to simulate 10,000 tournaments';
+  } else {
+    renderMCResults();
+  }
+}
+
+['w-gm','w-sot','w-xgf','w-xga','w-opp','w-spg','w-cor'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{SCORES=computeScores();renderAll();if(MC_RESULTS)runMonteCarlo();}));
+document.getElementById('mc-run-btn').addEventListener('click',()=>runMonteCarlo(10000));
+['rf-grp','rf-res'].forEach(id=>document.getElementById(id).addEventListener('change',renderRankings));
+document.getElementById('rf-srch').addEventListener('input',renderRankings);
+['pf-md','pf-grp','pf-status'].forEach(id=>document.getElementById(id).addEventListener('change',renderPredictor));
+load();
+</script>
+</body>
+</html>
